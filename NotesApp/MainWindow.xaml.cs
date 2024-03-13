@@ -11,6 +11,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Newtonsoft;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace NotesApp
 {
@@ -23,6 +26,13 @@ namespace NotesApp
         {
             InitializeComponent();
             DataContext = this;
+            LoadNotes();
+        }
+
+        private void SaveNotesToJson()
+        {
+            string json = JsonConvert.SerializeObject(Notes, Formatting.Indented);
+            File.WriteAllText("notes.json", json);
         }
 
         public class Note : INotifyPropertyChanged
@@ -76,22 +86,18 @@ namespace NotesApp
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
-
-            // Implement commands for adding, editing, and deleting notes
         }
 
         public ObservableCollection<Note> Notes { get; set; } = new ObservableCollection<Note>();
 
         private void ListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Get the selected note
             Note selectedNote = ListView.SelectedItem as Note;
 
-            // Update the read-only blocks with the selected note's information
             if (selectedNote != null)
             {
                 TitleTextBox.Text = selectedNote.Title;
-                NoteTextBox.Text = selectedNote.Content; // Assuming Content is a property of the Note class
+                NoteTextBox.Text = selectedNote.Content;
             }
             else
             {
@@ -127,9 +133,29 @@ namespace NotesApp
             };
 
             Notes.Add(newNote);
+            SaveNotesToJson();
 
             AddTitleTextBox.Clear();
             AddNoteTextBox.Clear();
         }
+
+        private void LoadNotes()
+        {
+            try
+            {
+                string json = File.ReadAllText("notes.json");
+                Notes = JsonConvert.DeserializeObject<ObservableCollection<Note>>(json);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading notes: {ex.Message}");
+            }
+
+            if (Notes == null)
+            {
+                Notes = new ObservableCollection<Note>();
+            }
+        }
+
     }
 }
